@@ -156,7 +156,7 @@ while true
         end
         plot_timer= 0;
     end
-    plot_toggle =2;
+    %plot_toggle = 2; 
     figure(1); 
     if plot_toggle == 0
         %subplot(2,1,1);
