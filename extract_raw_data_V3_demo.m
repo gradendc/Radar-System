@@ -56,9 +56,9 @@ min_frame_interval = oRS.oEPRadarBase.min_frame_interval_us
 
 % Graden's additional settings below
 %oRS.oEPRadarBase.set.num_samples_per_chirp(obj, val)
-rawData = [];
 chirps_per_frame = 48;
 samples_per_chirp = 32; 
+%rawData = zeros(sample_per_chirp, ??, chirps_per_frame);
 oRS.oEPRadarBase.stop_automatic_frame_trigger; % stop it to change values 
 oRS.oEPRadarBase.num_chirps_per_frame = chirps_per_frame;   
 oRS.oEPRadarBase.num_samples_per_chirp = samples_per_chirp; % can be [32, 64, 128, 256] 
@@ -73,20 +73,23 @@ rangeFFT_length = 512;
 auto_range = 0;     %  if 0, will use below range_select. if 1, will auto-detect range
 range_select = 20;  %which 'bin' to collect phase.if zero, then will autodetect
 Ta = 0.25;          %aquisition time (time per frame)
-plot_buffer_size = 1000;    %how many points to display on plot
+plot_buffer_size = 2000;    %how many points to display on plot
 plot_buffer = zeros(1,plot_buffer_size);   %circular buffer??, init with zeros
 time_buffer = zeros(1,plot_buffer_size);   %circular buffer??
 curr_time = 0.00        %assumes that each plot point is aqcuired linearly according to aquistion time
-
+%buffer time = buffer_size*(Ta/chirps_per_frame);
+%e.g. 1000 is 10.42 secs, 1500 is 15.63 secs , 2000 is 20.833 secs,  2500 is 26.04 secs
 
 
 %signal analyis
-data_buffer_size = 1000; 
+data_buffer_size = 2500; 
 data_buffer = zeros(1, data_buffer_size);
 data_time_buffer = zeros(1, data_buffer_size);
-phaseFFT_length = 2048; %make sure this is > data_buffer_size and is a power of 2
+%phaseFFT_length = 2048; %make sure this is > data_buffer_size and is a power of 2
+phaseFFT_length = 4096;
 polynum = 6;            %polynomial degree for detrending
 min_distance = 1;     %rangeFFT will be truncated below this (to ignore low freq spikes)
+lower_bandstop = 0.1;	%in Hz. phase-FFT will be "truncated" (by setting magnitude to 0) AT THIS FREQ and below (rounded to FFT bin)
 c = 3e8;
 plot_timer = 0; 
 plot_toggle = 0;
@@ -100,9 +103,9 @@ while true
     % 3. Trigger radar chirp and get the raw data
     [mxRawData, sInfo] = oRS.oEPRadarBase.get_frame_data;
     
-    ydata = mxRawData; % get raw data
+    %ydata = mxRawData; % get raw data
     
-    rawData = [rawData, mxRawData];
+    %rawData = [rawData, mxRawData];
     
     %disp(ydata); %used to be disp(ydata');
     
@@ -123,7 +126,7 @@ while true
             range_min = 2;
             [max_val, range_select] = max(abs(rangeFFT(range_min:end))); 
         end
-        detected_distance = range_select*((Fs/rangeFFT_length)*((c*Tc)/(4*BW)))
+        detected_distance = range_select*((Fs/rangeFFT_length)*((c*Tc)/(4*BW)));
         
         phase = angle(rangeFFT);
         phase_point = phase(range_select); 
@@ -141,9 +144,18 @@ while true
     [p,s,mu] = polyfit(data_time_buffer,data_buffer,polynum);
     f_y = polyval(p,data_time_buffer,[],mu);
     detrended_data = data_buffer - f_y;
-    %TODO: plot detrended??
+	% %windowing
+    % window = hann(data_buffer_size);
+    % detrended_data = detrended_data.*(window.');
+	
     phaseFFT = abs(fft(detrended_data,phaseFFT_length));
     phaseFFT = phaseFFT(1:(phaseFFT_length/2));     %truncate last half
+	trunc_phase_bin = round(lower_bandstop/((chirps_per_frame/Ta)/phaseFFT_length)); 
+	if(trunc_phase_bin ~= 0)
+		for i = 1:trunc_phase_bin
+		phaseFFT(i) = 0;     %"truncate" low freq spikes by setting to 0
+		end
+	end
     %TODO am i losing info by truncating? should i be recombining somehow?
     [max_mag, max_freq] = max(phaseFFT);
     signal_freq = max_freq*((chirps_per_frame/Ta)/phaseFFT_length);
@@ -157,7 +169,7 @@ while true
         end
         plot_timer= 0;
     end
-    %plot_toggle = 2; 
+    %plot_toggle = 1; 
     figure(1); 
     if plot_toggle == 0
         %subplot(2,1,1);
@@ -186,9 +198,10 @@ while true
     %annotation('textbox',[0 0 .1 .2],'String',['Looptime', num2str(loop_time)],'EdgeColor','none');  
 
     j = j+1;
-    loop_time = toc
+    loop_time = toc;
     %toc
     total_time = total_time + loop_time;
     av_runtime = total_time/j
+    loop_time
 	
 end;
