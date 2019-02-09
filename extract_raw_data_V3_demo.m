@@ -50,8 +50,7 @@ oRS %#ok<*NOPTS>
 
 % 2. Enable automatic trigger with frame time 1s
 %oRS.oEPRadarBase.set_automatic_frame_trigger(1000000);  % in microsec?
-oRS.oEPRadarBase.set_automatic_frame_trigger(250000);
-%oRS.oEPRadarBase.set_automatic_frame_trigger(500000);
+%oRS.oEPRadarBase.set_automatic_frame_trigger(250000);
 min_frame_interval = oRS.oEPRadarBase.min_frame_interval_us 
 
 % Graden's additional settings below
@@ -77,32 +76,62 @@ plot_buffer_size = 2000;    %how many points to display on plot
 plot_buffer = zeros(1,plot_buffer_size);   %circular buffer??, init with zeros
 time_buffer = zeros(1,plot_buffer_size);   %circular buffer??
 curr_time = 0.00        %assumes that each plot point is aqcuired linearly according to aquistion time
-%buffer time = buffer_size*(Ta/chirps_per_frame);
-%e.g. 1000 is 10.42 secs, 1500 is 15.63 secs , 2000 is 20.833 secs,  2500 is 26.04 secs
+%buffer_time = plot_buffer_size*(Ta/chirps_per_frame);
+%e.g. 1000 is 5.2 secs, 1500 is 7.8secs , 2000 is 10.41 secs,  2500 is 13.02 secs
 
 
 %signal analyis
 data_buffer_size = 2500; 
+%data_buffer_size = 1000; 
 data_buffer = zeros(1, data_buffer_size);
 data_time_buffer = zeros(1, data_buffer_size);
 %phaseFFT_length = 2048; %make sure this is > data_buffer_size and is a power of 2
-phaseFFT_length = 4096;
+phaseFFT_length = 8192;
 polynum = 6;            %polynomial degree for detrending
 min_distance = 1;     %rangeFFT will be truncated below this (to ignore low freq spikes)
 lower_bandstop = 0.1;	%in Hz. phase-FFT will be "truncated" (by setting magnitude to 0) AT THIS FREQ and below (rounded to FFT bin)
 c = 3e8;
+
+%timing calculations
+looptime_buffer_size = round(data_buffer_size/chirps_per_frame);  % size = data_buffer_time/Ta = data_buffer_size*(Ta/(Ta*chirps_per_frame));
+looptime_buffer = zeros(1, looptime_buffer_size); 
 plot_timer = 0; 
 plot_toggle = 0;
 loop_time = 0; 
 
+%output storage
+output_buffer_size = 480;
+output_buffer = zeros(1, output_buffer_size);
+output_time_buffer = (0.25:0.25: (output_buffer_size*0.25));
+
+%Averaging Constants
+fftFrame = 1;
+NumAverageFrames = 8;
+SummedPhaseFFTData = zeros(1,phaseFFT_length/2);
+PhaseFFTDataArray = zeros(NumAverageFrames,phaseFFT_length/2);
+
 j=0; 
 total_time = 0;
+tic; 
+
+oRS.oEPRadarBase.set_automatic_frame_trigger(250000);
+
 while true
-	tic;
+	%tic;
 	
     % 3. Trigger radar chirp and get the raw data
     [mxRawData, sInfo] = oRS.oEPRadarBase.get_frame_data;
+    j = j+1;
+    loop_time = toc;
+    %toc
+    looptime_buffer = [looptime_buffer(2:end) loop_time];  
+    total_time = sum(looptime_buffer);
+    av_runtime = total_time/looptime_buffer_size 
+    loop_time
     
+    plot_timer = plot_timer+toc;
+    
+    tic;
     %ydata = mxRawData; % get raw data
     
     %rawData = [rawData, mxRawData];
@@ -157,19 +186,38 @@ while true
 		end
 	end
     %TODO am i losing info by truncating? should i be recombining somehow?
-    [max_mag, max_freq] = max(phaseFFT);
+    
+    %Averaging Phase FFT over multiple frames
+    if fftFrame == NumAverageFrames
+        fftFrame = 1;
+    else
+        fftFrame = fftFrame + 1;
+    end
+    
+    PhaseFFTDataArray(fftFrame,:) = phaseFFT;
+    SummedPhaseFFTData = zeros(1,phaseFFT_length/2);
+    
+    for f = 1:NumAverageFrames
+        SummedPhaseFFTData = SummedPhaseFFTData + PhaseFFTDataArray(f,:);
+    end
+    
+    % Adding averaging max [max_mag, max_freq] = max(phaseFFT);
+    [max_mag, max_freq] = max(SummedPhaseFFTData);
     signal_freq = max_freq*((chirps_per_frame/Ta)/phaseFFT_length);
+    
+    %store frequency into output buffer
+    output_buffer = [output_buffer(2:end) signal_freq]; 
     
 	plot_timer = plot_timer+toc; 
     if plot_timer >= 4
-        if plot_toggle == 2
+        if plot_toggle == 1
             plot_toggle = 0;
         else
             plot_toggle = plot_toggle +1; 
         end
         plot_timer= 0;
     end
-    %plot_toggle = 1; 
+    %plot_toggle = 0; 
     figure(1); 
     if plot_toggle == 0
         %subplot(2,1,1);
@@ -182,7 +230,8 @@ while true
     elseif plot_toggle == 1  
         %subplot(2,1,2);
         axis_phaseFFT = (0:1:((phaseFFT_length/2)-1))*((chirps_per_frame/Ta)/phaseFFT_length); 
-        plot(axis_phaseFFT, phaseFFT); 
+        %Adding averaging FFT into graph.  plot(axis_phaseFFT, phaseFFT); 
+        plot(axis_phaseFFT, SummedPhaseFFTData); 
         title(['Phase FFT, freq = ',num2str(signal_freq)], 'FontSize',18);
         xlim([0  3.5]);
         drawnow
@@ -197,11 +246,11 @@ while true
     end
     %annotation('textbox',[0 0 .1 .2],'String',['Looptime', num2str(loop_time)],'EdgeColor','none');  
 
-    j = j+1;
-    loop_time = toc;
-    %toc
-    total_time = total_time + loop_time;
-    av_runtime = total_time/j
-    loop_time
+%     j = j+1;
+%     loop_time = toc;
+%     %toc
+%     total_time = total_time + loop_time;
+%     av_runtime = total_time/j
+%     loop_time
 	
 end;
