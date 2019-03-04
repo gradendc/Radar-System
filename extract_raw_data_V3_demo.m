@@ -4,8 +4,7 @@
 
 % Copyright (c) 2014-2017, Infineon Technologies AG
 % All rights reserved.
-%
-% Redistribution and use in source and binary forms, with or without modification,are permitted provided that the
+%% Redistribution and use in source and binary forms, with or without modification,are permitted provided that the
 % following conditions are met:
 %
 % Redistributions of source code must retain the above copyright notice, this list of conditions and the following
@@ -222,7 +221,7 @@ while true
     if plot_toggle == 0
         %subplot(2,1,1);
         plot(time_buffer, plot_buffer); 
-        title(['Phase vs Time, Detected frequency = ',num2str(signal_freq)], 'FontSize',18);
+        title(['Phase vs Time, Detected Frequency = ',num2str(signal_freq)], 'FontSize',30);
         xlim([(curr_time - plot_buffer_size*(Ta/chirps_per_frame))  curr_time]);
         %ylim( [-1  1]); 
         %xticks(((curr_time - plot_buffer_size*(Ta/chirps_per_frame)):5:curr_time)); 
@@ -232,7 +231,7 @@ while true
         axis_phaseFFT = (0:1:((phaseFFT_length/2)-1))*((chirps_per_frame/Ta)/phaseFFT_length); 
         %Adding averaging FFT into graph.  plot(axis_phaseFFT, phaseFFT); 
         plot(axis_phaseFFT, SummedPhaseFFTData); 
-        title(['Phase FFT, freq = ',num2str(signal_freq)], 'FontSize',18);
+        title(['Phase FFT, Detected Frequency = ',num2str(signal_freq)], 'FontSize',30);
         xlim([0  3.5]);
         drawnow
     elseif plot_toggle == 2
