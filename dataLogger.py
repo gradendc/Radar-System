@@ -2,7 +2,6 @@
 from multiprocessing.connection import Client
 import time
 
-
 """Python module demonstrates passing MATLAB types to Python functions"""
 def sendData(data_point):
     """Return data if transfered data, return 0 if failed"""
@@ -11,17 +10,10 @@ def sendData(data_point):
     address = ('localhost', 6000)
     conn = Client(address, authkey=b'secret password')
     # conn.send('close')
-    # can also send arbitrary objects:
-    conn.send(['a', 2.5, None, int, sum])
-    conn.send(['a', 2.5, None, int, sum])
-    conn.send(['a', 2.5, None, int, sum])
-    # conn.send(send_data)
-
+    conn.send(send_data)
     conn.close()
+    #todo: add error catching
     return send_data
-
-
-
 
 #enter this code into matlab command prompt to enter current directory 
 #into python search path:
