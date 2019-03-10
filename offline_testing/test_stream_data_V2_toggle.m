@@ -53,6 +53,7 @@ loop_time = 0;
 
 j=0; 
 total_time = 0;
+%fileID = fopen('data_log.csv','w');
 while true
     tic;
     %for testing purposes%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -80,6 +81,10 @@ while true
             detected_distance = range_select*((Fs/(rangeFFT_length/2))*((c*Tc)/(4*BW)))
         end
         phase_point = phase(range_select); 
+        fileID = fopen('data_log.csv','a');
+        formatSpec = '%4.2f \n';
+        fprintf(fileID, formatSpec, phase_point);
+        fclose(fileID);
         curr_time = curr_time + (Ta/chirps_per_frame);
         plot_buffer = [plot_buffer(2:end) phase_point];
         time_buffer = [time_buffer(2:end) curr_time]; 
