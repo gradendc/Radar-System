@@ -19,16 +19,31 @@ with open('data_log.csv') as csv_file:
 			video_data = np.append(video_data, row[0]);
 			#video_data.append(row[0]);
 	print(f'Processed {line_count} lines.')    
-plt.plot(radar_data) 
-plt.show()
+#plt.plot(radar_data) 
+#plt.title('radar data')
+#plt.show()
 
-#TODO will need to interpolate? (or something) data so that the time points/sample rate are the same
-#TODO and also make sure that arrays start at same physical time so they can correlate properly
 L = len(radar_data);
 L2 = len(video_data);
 print(L)
 print(L2)
-#processed = np.append(radar_data, video_data, axis=0)
+#TODO make sure that arrays start at same physical time so they can correlate properly
+#TODO will need to interpolate? (or something) data so that the time points/sample rate are the same
+radar_sampleHz = 48/0.25
+radar_time = np.arange(0, (L/radar_sampleHz), (1/radar_sampleHz))
+#print("timevec", len(radar_time))
+print(radar_time)
+plt.plot(radar_time, radar_data) 
+plt.show()
+video_sampleHz = 48/1
+video_time = np.arange(0, (L/video_sampleHz), (1/video_sampleHz))
+#plt.plot(video_time, video_data) 
+#plt.show()
+video_data = np.interp(radar_time.astype(np.float64), video_time.astype(np.float64), video_data.astype(np.float64))
+plt.plot(radar_time, video_data) 
+plt.title('interpolated to radar time')
+plt.show()
+##processed = np.append(radar_data, video_data, axis=0)
 processed = np.vstack((radar_data,video_data))
 processed = processed.astype(np.float64)
 print(processed)
