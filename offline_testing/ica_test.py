@@ -7,7 +7,7 @@ import time
 
 radar_data = np.array([])
 video_data = np.array([])
-with open('data_log.csv') as csv_file:
+with open('test_data_for_ICA.csv') as csv_file:
 	csv_reader = csv.reader(csv_file, delimiter=',')
 	line_count = 0
 	for row in csv_reader:

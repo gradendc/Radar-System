@@ -55,6 +55,9 @@ plot_timer = 0;
 plot_toggle = false;
 loop_time = 0; 
 
+%python communication
+python_buffer = zeros(1, chirps_per_frame); 
+
 j=0; 
 total_time = 0;
 while true
@@ -86,14 +89,15 @@ while true
         end
         phase_point = phase(range_select);
         
-        time = datestr(now,'HH:MM:SS FFF');
-        dataString = sprintf('Time: %s Data: %f', time, phase_point);
-        try
-            loggedData = py.dataLogger.sendData(dataString)
-        catch
-            fprintf('Unable to connect to server.  Run test_server.py\n');
-        end
-        
+%         time = datestr(now,'HH:MM:SS FFF');
+%         dataString = sprintf('Time: %s Data: %f', time, phase_point);
+%         try
+%             loggedData = py.dataLogger.sendData(dataString)
+%         catch
+%             fprintf('Unable to connect to server.  Run test_server.py\n');
+%         end
+
+        python_buffer(i) = phase_point; 
         
         curr_time = curr_time + (Ta/chirps_per_frame);
         plot_buffer = [plot_buffer(2:end) phase_point];
@@ -124,6 +128,15 @@ while true
     %TODO am i losing info by truncating? should i be recombining somehow?
     [max_mag, max_freq] = max(phaseFFT);
     signal_freq = max_freq*((chirps_per_frame/Ta)/(phaseFFT_length/2));
+    
+    time = datestr(now,'HH:MM:SS FFF');
+    dateString = sprintf('Time: %s', time);
+    try
+        loggedData = py.dataLogger.sendData(dateString, signal_freq, python_buffer)
+    catch
+        fprintf('Unable to connect to server.  Run test_server.py\n');
+    end
+    %loggedData = py.dataLogger.sendData(dateString, signal_freq, python_buffer)
     
     % plot_timer = plot_timer+toc; 
     % if plot_timer >= 4
