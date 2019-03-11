@@ -19,16 +19,31 @@ with open('data_log.csv') as csv_file:
 			video_data = np.append(video_data, row[0]);
 			#video_data.append(row[0]);
 	print(f'Processed {line_count} lines.')    
-#plt.plot(radar_data) 
-#plt.title('radar data')
-#plt.show()
+plt.plot(radar_data) 
+plt.title('radar data')
+plt.show()
 
+radar_data = radar_data.astype(np.float64)
+video_data = video_data.astype(np.float64)
 L = len(radar_data);
 L2 = len(video_data);
 print(L)
 print(L2)
+
 #TODO make sure that arrays start at same physical time so they can correlate properly
-#TODO will need to interpolate? (or something) data so that the time points/sample rate are the same
+
+#normalize y axis of data
+radar_mean = np.mean(radar_data)
+radar_sd = np.std(radar_data)
+radar_data = (radar_data - radar_mean)/radar_sd
+video_mean = np.mean(video_data)
+video_sd = np.std(video_data)
+video_data = (video_data - video_mean)/video_sd
+#plt.plot(video_data) 
+#plt.title('normalized data')
+#plt.show()
+
+#interpolate video data
 radar_sampleHz = 48/0.25
 radar_time = np.arange(0, (L/radar_sampleHz), (1/radar_sampleHz))
 #print("timevec", len(radar_time))
@@ -58,7 +73,4 @@ plt.show()
 plt.plot(ICA[:, 1]) 
 plt.show()
 
-#parsedICADict = self.parse_ICA_results(ICA, L)
-#resultDict = self.extractFrequency(L, parsedICADict["array"], 25)
-#self.bpm = resultDict["freq_in_hertz"] * 60
 
