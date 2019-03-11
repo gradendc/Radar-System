@@ -85,7 +85,16 @@ while true
             detected_distance = range_select*((Fs/(rangeFFT_length/2))*((c*Tc)/(4*BW)));
         end
         phase_point = phase(range_select);
-        loggedData = py.dataLogger.sendData(phase_point)
+        
+        time = datestr(now,'HH:MM:SS FFF');
+        dataString = sprintf('Time: %s Data: %f', time, phase_point);
+        try
+            loggedData = py.dataLogger.sendData(dataString)
+        catch
+            fprintf('Unable to connect to server.  Run test_server.py\n');
+        end
+        
+        
         curr_time = curr_time + (Ta/chirps_per_frame);
         plot_buffer = [plot_buffer(2:end) phase_point];
         time_buffer = [time_buffer(2:end) curr_time]; 
