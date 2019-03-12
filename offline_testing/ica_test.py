@@ -4,6 +4,7 @@ import time, math
 import jade
 import csv
 import time
+import numpy.fft as fft
 
 radar_data = np.array([])
 video_data = np.array([])
@@ -19,9 +20,9 @@ with open('test_data_for_ICA.csv') as csv_file:
 			video_data = np.append(video_data, row[0]);
 			#video_data.append(row[0]);
 	print(f'Processed {line_count} lines.')    
-plt.plot(radar_data) 
-plt.title('radar data')
-plt.show()
+#plt.plot(radar_data) 
+#plt.title('radar data')
+#plt.show()
 
 radar_data = radar_data.astype(np.float64)
 video_data = video_data.astype(np.float64)
@@ -47,17 +48,17 @@ video_data = (video_data - video_mean)/video_sd
 radar_sampleHz = 48/0.25
 radar_time = np.arange(0, (L/radar_sampleHz), (1/radar_sampleHz))
 #print("timevec", len(radar_time))
-print(radar_time)
-plt.plot(radar_time, radar_data) 
-plt.show()
+#print(radar_time)
+#plt.plot(radar_time, radar_data) 
+#plt.show()
 video_sampleHz = 48/1
 video_time = np.arange(0, (L/video_sampleHz), (1/video_sampleHz))
 #plt.plot(video_time, video_data) 
 #plt.show()
 video_data = np.interp(radar_time.astype(np.float64), video_time.astype(np.float64), video_data.astype(np.float64))
-plt.plot(radar_time, video_data) 
-plt.title('interpolated to radar time')
-plt.show()
+#plt.plot(radar_time, video_data) 
+#plt.title('interpolated to radar time')
+#plt.show()
 ##processed = np.append(radar_data, video_data, axis=0)
 processed = np.vstack((radar_data,video_data))
 processed = processed.astype(np.float64)
@@ -67,10 +68,33 @@ print(processed)
 #Do JADE ICA
 #processed = self.normalize_matrix(processed)
 ICA = jade.main(processed)
-print(ICA)
+#print(ICA)
 plt.plot(ICA[:, 0]) 
 plt.show()
-plt.plot(ICA[:, 1]) 
+#plt.plot(ICA[:, 1]) 
+#plt.show()
+firstComponent = np.asarray(ICA[:, 0]).astype(np.float64)
+#print(firstComponent.shape)
+firstComponent = np.squeeze(firstComponent)
+#print(firstComponent.shape)
+print("first component: ", firstComponent)
+
+#FFT processing on firstComponent
+#TODO: possibly share FFT processing fxn with ofProcessing?
+n = 4096 	#ICA length should = length of radar data buffer = 1000?
+icaFFT = fft.fft(firstComponent, n=n)
+print(type(icaFFT))
+icaFFT = np.absolute(icaFFT)
+#assume Fs is the same as radar Fs??? = chirps/frame * frames/second = chirps/second = 48*4 = 192
+Fs = 192
+freqAxis = fft.fftfreq(n, d=1/Fs)
+lowerCutOff=int(0.1/(Fs/n))		#0.1Hz
+upperCutOff=int(3/(Fs/n))		#3 Hz	
+freqAxis=freqAxis[lowerCutOff:upperCutOff]
+icaFFT=icaFFT[lowerCutOff:upperCutOff]
+print("FFT", icaFFT)
+maxIndex = np.argmax(icaFFT)
+maxFreq = maxIndex*(Fs/n)	
+print("max freq = ", maxFreq)
+plt.plot(freqAxis, icaFFT) 
 plt.show()
-
-

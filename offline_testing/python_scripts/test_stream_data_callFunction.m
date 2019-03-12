@@ -128,11 +128,15 @@ while true
     %TODO am i losing info by truncating? should i be recombining somehow?
     [max_mag, max_freq] = max(phaseFFT);
     signal_freq = max_freq*((chirps_per_frame/Ta)/(phaseFFT_length/2));
+    %calculate normalized magnitude
+    phase_mean = mean(phaseFFT);
+    phase_sd = std(phaseFFT);
+    norm_max_mag = (max_mag - phase_mean)/phase_sd;
     
     time = datestr(now,'HH:MM:SS FFF');
     dateString = sprintf('Time: %s', time);
     try
-        loggedData = py.dataLogger.sendData(dateString, signal_freq, python_buffer)
+        loggedData = py.dataLogger.sendData(dateString, signal_freq, norm_max_mag, python_buffer)
     catch
         fprintf('Unable to connect to server.  Run test_server.py\n');
     end

@@ -12,9 +12,11 @@ while(1):
 		print('connection accepted from', listener.last_accepted)
 		timeString = conn.recv()
 		respRate = conn.recv()
+		rateMag = conn.recv()
 		phasePoints = conn.recv()
 		print(timeString)
 		print(respRate)
+		print(rateMag)
 		print(phasePoints)
 
 		#convert to numpy array if needed 
