@@ -5,6 +5,7 @@ import jade
 import csv
 import time
 import numpy.fft as fft
+from scipy.signal import savgol_filter
 
 # plt.clf()	#clear any shit on plots??
 # plt.close()
@@ -140,6 +141,36 @@ maxIndex = np.argmax(icaFFT)
 maxFreq = freqAxis[maxIndex]	
 print("max freq = ", maxFreq)
 plt.subplot(2, 2, 4)
-plt.plot(freqAxis, icaFFT) 
-plt.title(f"FFT, RR = {maxFreq}")
+#plt.plot(freqAxis, icaFFT) 
+#plt.title(f"FFT, RR = {maxFreq}")
+#plt.show()
+
+def processForDisplay(inputData, smoothWindow , smoothPolyOrder = 3, detrendPolyOrder = 3):
+	data = inputData 	#make copy b/c idk if python functions are pass by value or pass by reference
+	#process data for displaying to user
+	#smoothPolyOrder must be an odd number
+
+	#normalize signal to SD
+	#mean = np.mean(data)
+	#sd = np.std(data)
+	#data = (data - mean)/sd
+
+	#detrending
+	L = len(data)
+	x = np.arange(0, L, 1)
+	model = np.polyfit(x, data, detrendPolyOrder)
+	predicted = np.polyval(model, x)
+	data = data - predicted
+
+	#smooth signal
+	processedData = savgol_filter(data, 101, 3)
+
+	
+
+	return processedData
+
+dVideo = processForDisplay(radar_data, 101, 3, 4)
+plt.subplot(2, 2, 4)
+plt.plot(dVideo) 
+plt.title("processed data")
 plt.show()
