@@ -19,6 +19,15 @@ while(1):
 		print(rateMag)
 		print(phasePoints)
 
+		
+		# class RadarObject(object):
+	# 		def __init__(self, ofOutput, mbOutput, people):
+	# 		self.dataVector 
+	# 		self.respRate 
+	# 		self.rateMag
+	# 		self.timeStamp
+
+
 		#convert to numpy array if needed 
 		phasePointInput = numpy.array(phasePoints)
 		print(type(phasePointInput))

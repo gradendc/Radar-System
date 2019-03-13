@@ -162,6 +162,8 @@ while true
         plot_buffer = [plot_buffer(2:end) phase_point];
         time_buffer = [time_buffer(2:end) curr_time];  
 
+        python_buffer(i) = phase_point; 
+        
 		%signal analyis
         data_buffer = [data_buffer(2:end) phase_point];
         data_time_buffer = [data_time_buffer(2:end) curr_time]; 		
@@ -203,6 +205,10 @@ while true
     % Adding averaging max [max_mag, max_freq] = max(phaseFFT);
     [max_mag, max_freq] = max(SummedPhaseFFTData);
     signal_freq = max_freq*((chirps_per_frame/Ta)/phaseFFT_length);
+    %calculate normalized magnitude
+    phase_mean = mean(phaseFFT);
+    phase_sd = std(phaseFFT);
+    norm_max_mag = (max_mag - phase_mean)/phase_sd;
     
     %store frequency into output buffer
     output_buffer = [output_buffer(2:end) signal_freq]; 

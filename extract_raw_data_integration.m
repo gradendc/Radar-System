@@ -114,6 +114,9 @@ NumAverageFrames = 8;
 SummedPhaseFFTData = zeros(1,phaseFFT_length/2);
 PhaseFFTDataArray = zeros(NumAverageFrames,phaseFFT_length/2);
 
+%python communication
+python_buffer = zeros(1, chirps_per_frame); 
+
 j=0; 
 total_time = 0;
 tic; 
@@ -163,10 +166,12 @@ while true
         
         phase = angle(rangeFFT);
         phase_point = phase(range_select); 
-        loggedData = py.dataLogger.sendData(phase_point);
+        %loggedData = py.dataLogger.sendData(phase_point);
         curr_time = curr_time + (Ta/chirps_per_frame);
         plot_buffer = [plot_buffer(2:end) phase_point];
         time_buffer = [time_buffer(2:end) curr_time];  
+        
+        python_buffer(i) = phase_point; 
 
 		%signal analyis
         data_buffer = [data_buffer(2:end) phase_point];
@@ -209,9 +214,23 @@ while true
     % Adding averaging max [max_mag, max_freq] = max(phaseFFT);
     [max_mag, max_freq] = max(SummedPhaseFFTData);
     signal_freq = max_freq*((chirps_per_frame/Ta)/phaseFFT_length);
+    %calculate normalized magnitude
+    phase_mean = mean(phaseFFT);
+    phase_sd = std(phaseFFT);
+    norm_max_mag = (max_mag - phase_mean)/phase_sd;
     
     %store frequency into output buffer
     output_buffer = [output_buffer(2:end) signal_freq]; 
+    
+     %send data to python
+    time = datestr(now,'HH:MM:SS FFF');
+    dateString = sprintf('Time: %s', time);
+    try
+        loggedData = py.dataLogger.sendData(dateString, signal_freq, norm_max_mag, python_buffer);
+    catch
+        fprintf('Unable to connect to server.  Run test_server.py\n');
+    end
+    %loggedData = py.dataLogger.sendData(dateString, signal_freq, norm_max_mag, python_buffer)
     
 	plot_timer = plot_timer+toc; 
     if plot_timer >= 4
@@ -251,11 +270,11 @@ while true
     end
     %annotation('textbox',[0 0 .1 .2],'String',['Looptime', num2str(loop_time)],'EdgeColor','none');  
 
-    j = j+1;
-    loop_time = toc;
+    %j = j+1;
+    %loop_time = toc;
     %toc
-    total_time = total_time + loop_time;
-    av_runtime = total_time/j
-    loop_time
+    %total_time = total_time + loop_time;
+    %av_runtime = total_time/j
+    %loop_time
 	
 end;
