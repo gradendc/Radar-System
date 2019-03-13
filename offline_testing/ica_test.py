@@ -6,23 +6,53 @@ import csv
 import time
 import numpy.fft as fft
 
-radar_data = np.array([])
-video_data = np.array([])
-with open('test_data_for_ICA.csv') as csv_file:
+# plt.clf()	#clear any shit on plots??
+# plt.close()
+#test = np.arange(0, 10, 1)
+#plt.plot(test)
+#plt.show()
+
+radar_data = np.array([]).astype(np.float64)
+video_data = np.array([]).astype(np.float64)
+
+#get radar data
+with open('L_25Hz_run2.csv') as csv_file:
 	csv_reader = csv.reader(csv_file, delimiter=',')
 	line_count = 0
 	for row in csv_reader:
 		#print(f'{row[0]}')
-		line_count += 1
-		if line_count <= 2916:
+		if line_count >= 580:
 			radar_data = np.append(radar_data, row[0]);
-		if line_count > 2916 :
-			video_data = np.append(video_data, row[0]);
-			#video_data.append(row[0]);
+		line_count += 1
 	print(f'Processed {line_count} lines.')    
-#plt.plot(radar_data) 
-#plt.title('radar data')
+print(type(radar_data))
+radar_data = radar_data.astype(np.float64)
+plt.subplot(2, 2, 1)
+plt.plot(radar_data) 
+plt.title('Radar Data')
 #plt.show()
+
+#TODO: truncate to 10 seconds of data
+#want 1920 points
+
+#get video data
+with open('Ltest2.csv') as csv_file:
+	csv_reader = csv.reader(csv_file, delimiter=',')
+	line_count = 0
+	for row in csv_reader:
+		#print(f'{row[0]}')
+		if line_count != 0:
+			video_data = np.append(video_data, row[1]);
+		line_count += 1
+	print(f'Processed {line_count} lines.') 
+print(video_data)
+video_data = video_data.astype(np.float64)
+#plt.subplot(2, 2, 2)
+#plt.plot(video_data) 
+#plt.title('video data')
+#plt.show()
+
+
 
 radar_data = radar_data.astype(np.float64)
 video_data = video_data.astype(np.float64)
@@ -30,6 +60,9 @@ L = len(radar_data);
 L2 = len(video_data);
 print(L)
 print(L2)
+#plt.plot(radar_data) 
+#plt.title('radar data')
+#plt.show()
 
 #TODO make sure that arrays start at same physical time so they can correlate properly
 
@@ -46,18 +79,24 @@ video_data = (video_data - video_mean)/video_sd
 
 #interpolate video data
 radar_sampleHz = 48/0.25
-radar_time = np.arange(0, (L/radar_sampleHz), (1/radar_sampleHz))
+#radar_time = np.arange(0, ( float(L)/float(radar_sampleHz) ), (1/float(radar_sampleHz)) )
+radar_time = np.arange(0, L, 1)
+radar_time = radar_time/radar_sampleHz
+#print(radar_time)
 #print("timevec", len(radar_time))
 #print(radar_time)
 #plt.plot(radar_time, radar_data) 
 #plt.show()
-video_sampleHz = 48/1
-video_time = np.arange(0, (L/video_sampleHz), (1/video_sampleHz))
+video_sampleHz = 30
+#video_time = np.arange(0, (L2/video_sampleHz), (1/video_sampleHz))
+video_time = np.arange(0, L2, 1)
+video_time = video_time/video_sampleHz
 #plt.plot(video_time, video_data) 
 #plt.show()
 video_data = np.interp(radar_time.astype(np.float64), video_time.astype(np.float64), video_data.astype(np.float64))
-#plt.plot(radar_time, video_data) 
-#plt.title('interpolated to radar time')
+plt.subplot(2, 2, 2)
+plt.plot(video_data) 
+plt.title('Video Data (interpolated to radar time)')
 #plt.show()
 ##processed = np.append(radar_data, video_data, axis=0)
 processed = np.vstack((radar_data,video_data))
@@ -69,8 +108,10 @@ print(processed)
 #processed = self.normalize_matrix(processed)
 ICA = jade.main(processed)
 #print(ICA)
+plt.subplot(2, 2, 3)
 plt.plot(ICA[:, 0]) 
-plt.show()
+plt.title("ICA Output")
+#plt.show()
 #plt.plot(ICA[:, 1]) 
 #plt.show()
 firstComponent = np.asarray(ICA[:, 0]).astype(np.float64)
@@ -83,6 +124,7 @@ print("first component: ", firstComponent)
 #TODO: possibly share FFT processing fxn with ofProcessing?
 n = 4096 	#ICA length should = length of radar data buffer = 1000?
 icaFFT = fft.fft(firstComponent, n=n)
+#icaFFT = fft.fft(video_data, n=n)
 print(type(icaFFT))
 icaFFT = np.absolute(icaFFT)
 #assume Fs is the same as radar Fs??? = chirps/frame * frames/second = chirps/second = 48*4 = 192
@@ -94,7 +136,10 @@ freqAxis=freqAxis[lowerCutOff:upperCutOff]
 icaFFT=icaFFT[lowerCutOff:upperCutOff]
 print("FFT", icaFFT)
 maxIndex = np.argmax(icaFFT)
-maxFreq = maxIndex*(Fs/n)	
+#maxFreq = maxIndex*(Fs/n)	
+maxFreq = freqAxis[maxIndex]	
 print("max freq = ", maxFreq)
+plt.subplot(2, 2, 4)
 plt.plot(freqAxis, icaFFT) 
+plt.title(f"FFT, RR = {maxFreq}")
 plt.show()
