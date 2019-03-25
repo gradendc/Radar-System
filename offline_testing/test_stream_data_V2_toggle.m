@@ -47,9 +47,25 @@ Fs = 42666.0;           %sample rate (Hz)
 Tc = 1500e-6;                   %chirp time in secs
 c = 3e8;
 BW = 200e6;             %bandwidth in Hz
+lower_bandstop = 0.05;	%in Hz
 plot_timer = 0; 
 plot_toggle = false;
 loop_time = 0; 
+
+%Averaging Constants
+fftFrame = 1;
+NumAverageFrames = 8;
+SummedPhaseFFTData = zeros(1,phaseFFT_length/2);
+PhaseFFTDataArray = zeros(NumAverageFrames,phaseFFT_length/2);
+
+%storage for testing
+phasePointStore= [];
+freqStore=[];
+magStore = [];
+timeStore=[];
+signal_freq =0;
+norm_max_mag =0;
+
 
 j=0; 
 total_time = 0;
@@ -81,10 +97,10 @@ while true
             detected_distance = range_select*((Fs/(rangeFFT_length/2))*((c*Tc)/(4*BW)))
         end
         phase_point = phase(range_select); 
-        fileID = fopen('data_log.csv','a');
-        formatSpec = '%4.2f \n';
-        fprintf(fileID, formatSpec, phase_point);
-        fclose(fileID);
+        %fileID = fopen('data_log.csv','a');
+        %formatSpec = '%4.2f \n';
+        %fprintf(fileID, formatSpec, phase_point);
+        %fclose(fileID);
         curr_time = curr_time + (Ta/chirps_per_frame);
         plot_buffer = [plot_buffer(2:end) phase_point];
         time_buffer = [time_buffer(2:end) curr_time]; 
@@ -92,6 +108,12 @@ while true
         %signal analyis
         data_buffer = [data_buffer(2:end) phase_point];
         data_time_buffer = [data_time_buffer(2:end) curr_time]; 
+        
+        %store data
+        phasePointStore= [phasePointStore phase_point];
+        freqStore=[freqStore signal_freq];
+        magStore = [magStore norm_max_mag];
+        timeStore=[timeStore curr_time];
     end
     
     figure(1); %hold on
@@ -108,22 +130,48 @@ while true
     [p,s,mu] = polyfit(data_time_buffer,data_buffer,polynum);
     f_y = polyval(p,data_time_buffer,[],mu);
     detrended_data = data_buffer - f_y;
-    %TODO: plot detrended??
     phaseFFT = abs(fft(detrended_data,phaseFFT_length));
     phaseFFT = phaseFFT(1:(phaseFFT_length/2));     %truncate last half
+	trunc_phase_bin = round(lower_bandstop/((chirps_per_frame/Ta)/phaseFFT_length)); 
+	if(trunc_phase_bin ~= 0)
+		for i = 1:trunc_phase_bin
+		phaseFFT(i) = 0;     %"truncate" low freq spikes by setting to 0
+		end
+	end
     %TODO am i losing info by truncating? should i be recombining somehow?
-    [max_mag, max_freq] = max(phaseFFT);
-    signal_freq = max_freq*((chirps_per_frame/Ta)/(phaseFFT_length/2));
+    
+    %Averaging Phase FFT over multiple frames
+    if fftFrame == NumAverageFrames
+        fftFrame = 1;
+    else
+        fftFrame = fftFrame + 1;
+    end
+    
+    PhaseFFTDataArray(fftFrame,:) = phaseFFT;
+    SummedPhaseFFTData = zeros(1,phaseFFT_length/2);
+    
+    for f = 1:NumAverageFrames
+        SummedPhaseFFTData = SummedPhaseFFTData + PhaseFFTDataArray(f,:);
+    end
+    
+    % Adding averaging max [max_mag, max_freq] = max(phaseFFT);
+    [max_mag, max_freq] = max(SummedPhaseFFTData);
+    signal_freq = max_freq*((chirps_per_frame/Ta)/phaseFFT_length);
+    %calculate normalized magnitude
+    phase_mean = mean(SummedPhaseFFTData);
+    phase_sd = std(SummedPhaseFFTData);
+    norm_max_mag = (max_mag - phase_mean)/phase_sd;
     
     plot_timer = plot_timer+toc; 
     if plot_timer >= 4
         plot_toggle = ~plot_toggle;
         plot_timer= 0;
     end
+    plot_toggle = true;
     if plot_toggle == true  
         subplot(2,1,2);
         axis_phaseFFT = (0:1:((phaseFFT_length/2)-1))*((chirps_per_frame/Ta)/(phaseFFT_length/2)); 
-        plot(axis_phaseFFT, phaseFFT); 
+        plot(axis_phaseFFT, SummedPhaseFFTData); 
         title(['Phase FFT, freq = ',num2str(signal_freq)]);
         xlim([0  3.5]);
     else

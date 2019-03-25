@@ -208,15 +208,15 @@ while true
     SummedPhaseFFTData = zeros(1,phaseFFT_length/2);
     
     for f = 1:NumAverageFrames
-        SummedPhaseFFTData = SummedPhaseFFTData + PhaseFFTDataArray(f,:);
+        SummedPhaseFFTData = SummedPhaseFFTData + PhaseFFTDataArray(f,:);	%need to divide by number of averagd FFTs?
     end
     
     % Adding averaging max [max_mag, max_freq] = max(phaseFFT);
     [max_mag, max_freq] = max(SummedPhaseFFTData);
     signal_freq = max_freq*((chirps_per_frame/Ta)/phaseFFT_length);
     %calculate normalized magnitude
-    phase_mean = mean(phaseFFT);
-    phase_sd = std(phaseFFT);
+    phase_mean = mean(SummedPhaseFFTData);
+    phase_sd = std(SummedPhaseFFTData);
     norm_max_mag = (max_mag - phase_mean)/phase_sd;
     
     %store frequency into output buffer
