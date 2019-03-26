@@ -211,6 +211,7 @@ while true
         SummedPhaseFFTData = SummedPhaseFFTData + PhaseFFTDataArray(f,:);	%need to divide by number of averagd FFTs?
     end
     
+    SummedPhaseFFTData = SummedPhaseFFTData./NumAverageFrames; 
     % Adding averaging max [max_mag, max_freq] = max(phaseFFT);
     [max_mag, max_freq] = max(SummedPhaseFFTData);
     signal_freq = max_freq*((chirps_per_frame/Ta)/phaseFFT_length);
@@ -226,11 +227,11 @@ while true
     time = datestr(now,'HH:MM:SS FFF');
     dateString = sprintf('Time: %s', time);
     try
-        loggedData = py.dataLogger.sendData(dateString, signal_freq, norm_max_mag, python_buffer);
+        loggedData = py.dataLogger.sendData2(dateString, signal_freq, norm_max_mag, python_buffer);
     catch
         fprintf('Unable to connect to server.  Run test_server.py\n');
     end
-    %loggedData = py.dataLogger.sendData(dateString, signal_freq, norm_max_mag, python_buffer)
+    loggedData = py.dataLogger.sendData(dateString, signal_freq, norm_max_mag, python_buffer)
     
 	plot_timer = plot_timer+toc; 
     if plot_timer >= 4
@@ -246,7 +247,7 @@ while true
     if plot_toggle == 0
         %subplot(2,1,1);
         plot(time_buffer, plot_buffer); 
-        title(['Phase vs Time, Detected Frequency = ',num2str(signal_freq)], 'FontSize',30);
+        title(['Phase vs Time, Detected Frequency = ',num2str(signal_freq),' ',num2str(norm_max_mag)], 'FontSize',30);
         xlim([(curr_time - plot_buffer_size*(Ta/chirps_per_frame))  curr_time]);
         %ylim( [-1  1]); 
         %xticks(((curr_time - plot_buffer_size*(Ta/chirps_per_frame)):5:curr_time)); 
@@ -256,7 +257,7 @@ while true
         axis_phaseFFT = (0:1:((phaseFFT_length/2)-1))*((chirps_per_frame/Ta)/phaseFFT_length); 
         %Adding averaging FFT into graph.  plot(axis_phaseFFT, phaseFFT); 
         plot(axis_phaseFFT, SummedPhaseFFTData); 
-        title(['Phase FFT, Detected Frequency = ',num2str(signal_freq)], 'FontSize',30);
+        title(['Phase FFT, Detected Frequency = ',num2str(signal_freq), ' ', num2str(norm_max_mag)], 'FontSize',30);
         xlim([0  3.5]);
         drawnow
     elseif plot_toggle == 2

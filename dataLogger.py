@@ -3,9 +3,10 @@ from multiprocessing.connection import Client
 import time
 
 """Python module demonstrates passing MATLAB types to Python functions"""
-def sendData(timeString, respRate, rateMag, phasePointVector):
+def sendData2(timeString, respRate, rateMag, phasePointVector):
     """Return data if transfered data, return 0 if failed"""
-    address = ('localhost', 6000)
+    address = ('32.211.66.52', 40000)
+    #address = ('localhost', 6000)
     conn = Client(address, authkey=b'secret password')
     #conn.send('close')
     conn.send(timeString)
