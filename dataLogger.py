@@ -1,21 +1,27 @@
 # matlab_data_logger.py
 from multiprocessing.connection import Client
-import time
+import zmq, json
+
+SERVER_ADDRESS = '18.237.234.155'
+SERVER_PORT = '2344'
+
+context = zmq.Context()
+radar_socket = context.socket(zmq.PUB)
+radar_socket.connect('tcp://' + SERVER_ADDRESS + ':' + SERVER_PORT)
+
 
 """Python module demonstrates passing MATLAB types to Python functions"""
-def sendData(timeString, respRate, rateMag, phasePointVector):
+def sendData(self, timeString, respRate, rateMag, phasePointVector):
     """Return data if transfered data, return 0 if failed"""
-    address = ('localhost', 6000)
-    conn = Client(address, authkey=b'secret password')
-    #conn.send('close')
-    conn.send(timeString)
-    conn.send(respRate)
-    conn.send(rateMag)
-    conn.send(phasePointVector)
-    conn.close()
+    frameDict = {
+        'phasePointVector': phasePointVector.tolist(),
+        'timeString': timeString,
+        'respRate': respRate,
+        'rateMag': rateMag
+    }
+    frameDictJSON = json.dumps(frameDict)
 
-    return respRate
-
+    radar_socket.send_string(frameDictJSON)
 #enter this code into matlab command prompt to enter current directory 
 #into python search path:
 #if count(py.sys.path,'') == 0
