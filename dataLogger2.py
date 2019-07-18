@@ -1,3 +1,5 @@
+#Function to be used with radar matlab scripts (.m files) to communicate with integrated system
+
 import zmq
 import json
 

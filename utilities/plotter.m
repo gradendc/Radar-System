@@ -1,3 +1,5 @@
+%plots data stored in below buffer AND stores them into csv file called "output.csv"
+
 plot(output_time_buffer, output_buffer); 
 ylim([0 1]);
 %output_matrix = [output_time_buffer.' output_buffer.' ];
