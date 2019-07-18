@@ -1,0 +1,2 @@
+The plotter.m script converts buffers in the Matlab workspace to .csv files. 
+The matlab_test scripts are code snippets to run matlab from python (functionality not used in final systems)

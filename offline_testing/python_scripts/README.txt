@@ -1,0 +1,2 @@
+The matlabImitator and associated scripts are for "faking" a radar data stream from matlab to send to the integrated system. 
+Use if you want to test the integrated system without the radar module and radar matlab script running. 
