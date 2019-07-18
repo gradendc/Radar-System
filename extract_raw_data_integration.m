@@ -42,7 +42,7 @@ resetRS; % close and delete ports
 
 %load current version of dataLogger.py
 clear classes
-mod = py.importlib.import_module('dataLogger');   
+mod = py.importlib.import_module('dataLogger2');   
 py.importlib.reload(mod);
 
 % 1. Create radar system object
@@ -224,14 +224,14 @@ while true
     output_buffer = [output_buffer(2:end) signal_freq]; 
     
      %send data to python
-    time = datestr(now,'HH:MM:SS FFF');
-    dateString = sprintf('Time: %s', time);
+    time = datestr(now,'yy/mm/dd HH:MM:SS');
+    dateString = sprintf('%s', time);
     try
-        loggedData = py.dataLogger.sendData2(dateString, signal_freq, norm_max_mag, python_buffer);
+        loggedData = py.dataLogger2.sendData(dateString, signal_freq, norm_max_mag, python_buffer);
     catch
         fprintf('Unable to connect to server.  Run test_server.py\n');
     end
-    loggedData = py.dataLogger.sendData(dateString, signal_freq, norm_max_mag, python_buffer)
+    %loggedData = py.dataLogger2.sendData(dateString, signal_freq, norm_max_mag, python_buffer)
     
 	plot_timer = plot_timer+toc; 
     if plot_timer >= 4

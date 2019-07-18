@@ -9,7 +9,7 @@
 import csv
 import numpy as np
 import matplotlib.pyplot as plt
-import dataLogger
+import dataLogger2 
 import time
 
 chirps_per_frame =48
@@ -45,10 +45,10 @@ while(1):
 		sendData[sendIndex] = radarData[dataIndex]
 		sendIndex+=1
 		dataIndex+=1
-	timeStamp = "00/00/00 00.00.00"
+	timeStamp = "19/04/03 00:00:00"
 	respRate = 1
 	respMag = 100
-	dataLogger.sendData(timeStamp, respRate, respMag, sendData)
+	dataLogger2.sendData(timeStamp, respRate, respMag, sendData)
 
 	#collectData =np.append(collectData, sendData)
 	#plt.plot(collectData) 
